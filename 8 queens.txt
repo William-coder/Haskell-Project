@@ -1,0 +1,37 @@
+{-|
+
+
+                            Online Haskell Compiler.
+                Code, Compile, Run and Debug Haskell program online.
+Write your code in this editor and press "Run" button to execute it.
+
+-}
+import Data.List
+
+nextList :: Int -> Int -> [(Int,Int)]
+nextList i j  = [ (x,y) | k <- [(-7)..7], let x = i + k, let y = j+1, k /= 0, x >= 1 && x <= 8, y>=1 && y<=8]
+
+diagonal :: Int -> Int -> [(Int,Int)]
+diagonal i j = lis1 ++ lis2 where
+                              lis1 = [(x, y) | n <- [(-7)..7], let x = i+n, let y = j+n, x>=1 && x<=8, y>=1 && y<=8]
+                              lis2 = [(x, y) | n <- [(-7)..7], let x = i+n, let y = j-n, x>=1 && x<=8, y>=1 && y<=8, n/=0]
+
+nextGenerator :: Int -> Int -> [(Int,Int)]
+nextGenerator i j = [mem | mem <- nextList i j, not (elem mem (diagonal i j))]
+
+testSameDiagonal ::  [(Int,Int)] -> Bool
+testSameDiagonal board = and [ not (elem b2 (diagonal (fst b1) (snd b1))) | b1 <- board, b2 <- board, b1 /= b2 ] == True
+
+testSameRow :: [(Int,Int)] -> Bool
+testSameRow board = and [(fst b1 /= fst b2) && (fst b1 /= fst b2) | b1 <- board, b2 <- board, b1 /= b2 ] == True
+
+driver :: Int -> Int ->[[(Int,Int)]]
+driver i j 
+    | nextGenerator i j == [] = [[(i,j)]]
+    | otherwise  = [(i,j) : b | t <- nextGenerator i j, b <- driver (fst t) (snd t)] 
+              
+queens :: Int -> [[(Int,Int)]]
+
+queens n = [b | itr <- [1..n], let ans = filter testSameDiagonal (filter testSameRow (driver itr 1)), b <- ans] 
+ 
+main = print(length (queens 8))

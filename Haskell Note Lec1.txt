@@ -1,0 +1,299 @@
+
+Functional Programming Using Haskell:
+
+has following features:
+
+1.Functional:
+the basics are just functions(even functions can be taken as parameters)
+only the looping is recursion
+
+2.Pure:Haskell functions are pure, that is, they don’t have side effects.
+That means it makes reasoning about programs easier, and allows for more optimizations by the compiler.
+
+3.Lazy:
+Values are only evaluated when they are needed. This makes it possible to work with infinite data structures.
+
+4.Strongly typed - every Haskell value and expression has a type. 
+The compiler checks the types at compile-time and guarantees that no type errors can happen at runtime. 
+This means no AttributeErrors (a la Python), ClassCastExceptions (a la Java) or segmentation faults (a la C). 
+The Haskell type system is very powerful and can help you design better programs.
+
+5.Type inferred:
+programmers can still give functions and values type annotations to make finding type errors easier. 
+Type annotations also make reading programs easier.
+
+6.Compiled - 
+even though we mostly use Haskell via the interactive GHCi environment on this course, 
+Haskell is a compiled language. Haskell programs can be compiled to very efficient binaries, 
+and the GHC compiler is very good at optimising functional code into performant machine code.
+
+Type in prelude:
+Prelude> :type "asdf"
+"asdf" :: [Char] //a list of characters
+
+Prelude> :t tail
+tail :: [a] -> [a] //the type of tail function
+
+Prelude> :quit
+Leaving GHCi.
+
+Expression and type:
+
+Expression	Type	Value
+True	        Bool	True
+not True	Bool	False
+"as" ++ "df"	[Char]	"asdf"
+
+
+Syntax of Expression:
+
+Haskell	Python, Java or C
+f 1	f(1)
+f 1 2	f(1,2)
+
+
+Haskell	Python, Java or C
+g h f 1	        g(h,f,1)
+g h (f 1)	g(h,f(1))
+g (h f 1)	g(h(f,1))
+g (h (f 1))	g(h(f(1)))
+
+
+
+Function calls bind tighter than operators, just like multiplication binds tighter than addition.
+Haskell	     Python, Java or C
+a + b	          a + b
+f a + g b	f(a) + g(b)
+f (a + g b)	f(a+g(b))
+
+in Haskell, function application associates left, 
+that is, f g x y is actually the same as (((f g) x) y).
+For now you can just think that f g x y is f applied to the arguments g, x and y.
+
+
+
+Syntax of types:
+Type	Literals	Use	Operations
+Int	1, 2, -3	Number type (signed, 64bit)	+, -, *, div, mod
+Integer	1, -2, 900000000000000000	Unbounded number type	+, -, *, div, mod
+Double	0.1, 1.2e5	Floating point numbers	+, -, *, /, sqrt
+Bool	True, False	Truth values	&&, ||, not
+String aka [Char]	"abcd", ""	Strings of characters	reverse, ++
+
+//[char] <=> String in haskell; ++ <=> concatenation
+//Names of Types start with capital letter, but variables and functions start with a lower case letter
+
+
+Type for functions:
+para1->para2->para3->...->return type
+
+
+
+The structure of Haskell program:
+module Gold where
+
+-- The golden ratio
+phi :: Double    --The definition of constant phi(phi has a type Double) 
+phi = (sqrt 5 + 1) / 2   --"=" means equation The left hand side of the = is the expression we are defining, 
+
+--and the right hand side of the = is the definition.
+
+polynomial :: Double -> Double
+polynomial x = x^2 - x - 1
+
+f x = polynomial (polynomial x)
+
+main = do
+  print (polynomial phi)
+  print (f phi)
+
+
+Note in GHCi compiler:
+Prelude> :{
+Prelude| polynomial :: Double -> Double
+Prelude| polynomial x = x^2 - x - 1
+Prelude| :}
+Prelude> polynomial 3.0
+5.0
+
+You can use :{ ... :} to paste a block of code or use ";"
+In haskell: div function is used as integer division, while / is used as normal division and mod is used as moduluo division
+
+
+
+Haskell implementation of major building blocks of programming:
+Conditionals
+Local definitions
+Pattern matching
+Recursion
+
+Conditionals:
+If is an expression in haskell. 
+It has a value. 
+It selects between two other expressions. 
+It corresponds to the ?: operator in C or Java.
+
+// Java
+int price = product.equals("milk") ? 1 : 2;
+
+--Haskell
+price = if product == "milk" then 1 else 2
+
+In haskell, not equal is used "/="
+
+Examples:
+checkPassword password = if password == "swordfish"
+                         then "You're in."
+                         else "ACCESS DENIED!"
+
+absoluteValue n = if n >= 0 then n else -n
+
+
+login user password = if user == "unicorn73"
+                      then if password == "f4bulous!"
+                           then "unicorn73 logged in"
+                           else "wrong password"
+                      else "unknown user"
+
+Local definitions:(for further explanation)
+1.where 2.let...in
+
+circleArea :: Double -> Double
+circleArea r = pi * rsquare
+    where pi = 3.1415926
+          rsquare = r * r
+
+
+circleArea r = let pi = 3.1415926
+                   rsquare = r * r
+               in pi * rsquare
+
+
+
+Local definitions can also be functions:
+
+circleArea r = pi * square r
+    where pi = 3.1415926
+          square x = x * x
+
+circleArea r = let pi = 3.1415926
+                   square x = x * x
+               in pi * square r
+
+
+
+
+Immutability:
+
+
+Haskell variables aren’t boxes into which you can put new values, 
+Haskell variables name a value (or rather, an expression) and that’s it.
+
+increment x = let x = x+1
+              in x
+
+is illegal!!
+
+
+Recursion in Haskell:
+
+All loops in haskell is implemeneted using recursion!
+
+For exampel factorial fucntion:
+
+factorial :: Int -> Int
+factorial 1 = 1
+factorial n = n * factorial (n-1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

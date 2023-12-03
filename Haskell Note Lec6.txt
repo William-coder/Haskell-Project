@@ -1,0 +1,215 @@
+Using existing class with user defined type:
+
+data Color = Black | White
+
+instance Eq Color where 
+   Black == Black = True
+   White == White = True
+   _     == _     = True
+
+Here we define how Color works on ==
+
+Syntax of Classes and Instances:
+
+a type class is defined using class syntax
+
+For example:
+
+class Size a where
+  size :: a -> Int
+
+So the instances of type class is defined as instance syntax
+
+instance Size Int where 
+   size x = abs x
+
+instance Size [a] where
+   size xs = length xs
+
+
+Prelude> :t size
+size :: Size a => a -> Int
+Prelude> size [True,False]
+2
+Prelude> sizeBoth a b = [size a, size b]
+Prelude> :t sizeBoth
+sizeBoth :: (Size a1, Size a2) => a1 -> a2 -> [Int]
+
+Note that a class can contain multiple functions, and even constants.
+
+
+class Size a where
+  empty :: a
+  size :: a -> Int
+  sameSize :: a -> a -> Bool
+
+instance Size (Maybe a) where
+  empty = Nothing
+
+  size Nothing = 0
+  size (Just a) = 1
+
+  sameSize x y = size x == size y
+
+instance Size [a] where
+  empty = []
+  size xs = length xs
+  sameSize x y = size x == size y
+
+
+Restrictions on Instances:
+
+class Size a where
+  size :: a -> Int
+
+We saw a Size [a] instance above. Why not define an instance just for lists of booleans?
+
+instance Size [Bool] where
+  size bs = length (filter id bs)   -- count Trues
+
+
+
+But the error tells us we can only define instances where all type parameters are different type variables. 
+That is, we can define instance Size (Either a b) but we can’t define:
+
+instance Size (Either String a) – since String is not a type variable
+instance Size (Either a a) – since the type variables aren’t different
+instance Size [[a]] – since [a] is not a type variable
+
+
+The standard type classes use lots of default implementations to make implementing the classes easy. Here is the standard definitions for Eq (formatted for readability).
+
+class Eq a where
+  (==) ::  a -> a -> Bool
+  x == y  = not (x /= y)
+
+  (/=) ::  a -> a -> Bool
+  x /= y  = not (x == y)
+Note how both operations have a default implementation in terms of the other. This means we could define an Eq instance with no content at all, but the resulting functions would just recurse forever. In practice, we want to define at least one of == and /=.
+
+When there are lots of default implementations, it can be hard to know which functions you need to implement yourself. For this reason class documentation usually mentions the minimal complete definition. For Eq, the docs say “Minimal complete definition: either == or /=.”
+
+Let’s look at Ord next. Ord has 7 operations, all with default implementations in terms of each other. By the way, note the quirky way of defining multiple type signatures at once. It’s okay, it’s a feature of Haskell, this is how Ord is defined in the standard. (We’ll get back to what the (Eq a) => part means soon.)
+
+class  (Eq a) => Ord a  where
+  compare              :: a -> a -> Ordering
+  (<), (<=), (>=), (>) :: a -> a -> Bool
+  max, min             :: a -> a -> a
+
+  compare x y | x == y    = EQ
+              | x <= y    = LT
+              | otherwise = GT
+
+  x <= y  = compare x y /= GT
+  x <  y  = compare x y == LT
+  x >= y  = compare x y /= LT
+  x >  y  = compare x y == GT
+
+  max x y | x <= y    =  y
+          | otherwise =  x
+  min x y | x <= y    =  x
+          | otherwise =  y
+With this definition it’s really hard to know what the minimal complete definition is. Luckily the docs tell us “Minimal complete definition: either compare or <=.”
+
+As a final word on default implementations, if there is never a need to override the default definition, the function can be moved out of the class for simplicity. Consider a class like Combine below:
+
+class Combine a where
+  combine :: a -> a -> a
+  combine3 :: a -> a -> a -> a
+  combine3 x y z = combine x (combine y z)
+It’s hard to think of a case where combine3 would be given any other definition, so why not move it out of the class:
+
+class Combine a where
+  combine :: a -> a -> a
+
+combine3 :: Combine a => a -> a -> a -> a
+combine3 x y z = combine x (combine y z)
+As an example, here are the Eq and Ord instances for a simple pair type. Note how the definition uses the minimal complete definition rules by only defining == and <=.
+
+data IntPair = IntPair Int Int
+  deriving Show
+
+instance Eq IntPair where
+  IntPair a1 a2 == IntPair b1 b2  =  a1==b1 && a2==b2
+
+instance Ord IntPair where
+  IntPair a1 a2 <= IntPair b1 b2
+     | a1<b1     = True
+     | a1>b1     = False
+     | otherwise = a2<=b2
+*Main> (IntPair 1 2) < (IntPair 2 3)
+True
+*Main> (IntPair 1 2) > (IntPair 2 3)
+False
+*Main> compare (IntPair 1 2) (IntPair 2 3)
+LT
+*Main Data.List> sort [IntPair 1 1,IntPair 1 4,IntPair 2 1,IntPair 2 2]
+[IntPair 1 1,IntPair 1 4,IntPair 2 1,IntPair 2 2]
+
+
+
+Deriving:
+As we’ve seen many times already, deriving is a way to get automatically generated class instances. The Read and Show classes should pretty much always be derived to get the standard behaviour. The derived instance for Eq is typically what you want. It requires constructors and fields to match.
+
+The derived Ord instance might not be what you want. It orders constructors left-to-right, and then compares fields inside constructors left-to-right. An example:
+
+data Person = Dead | Alive String Int
+  deriving (Show, Eq, Ord)
+Prelude> Dead < Alive "Bob" 35                   -- constructors are ordered left-to-right
+True
+Prelude> Alive "Barbara" 35 < Alive "Clive" 17   -- names are compared before ages
+True
+Prelude> Alive "Clive" 17 < Alive "Clive" 30     -- finally, ages are compared if names match
+True
+
+
+You can use the :info command in GHCi to get the contents and instances of a class. 
+These days the info even includes the minimal complete definition (see the MINIMAL pragma). For example:
+
+Prelude> :info Num
+class Num a where
+  (+) :: a -> a -> a
+  (-) :: a -> a -> a
+  (*) :: a -> a -> a
+  negate :: a -> a
+  abs :: a -> a
+  signum :: a -> a
+  fromInteger :: Integer -> a
+  {-# MINIMAL (+), (*), abs, signum, fromInteger, (negate | (-)) #-}
+    -- Defined in ‘GHC.Num’
+instance Num Word -- Defined in ‘GHC.Num’
+instance Num Integer -- Defined in ‘GHC.Num’
+instance Num Int -- Defined in ‘GHC.Num’
+instance Num Float -- Defined in ‘GHC.Float’
+instance Num Double -- Defined in ‘GHC.Float’
+
+
+
+Hierarchies:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

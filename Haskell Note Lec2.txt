@@ -1,0 +1,487 @@
+Recursion and Helper functions:
+
+-- fibonacci numbers, fast version
+fibonacci :: Integer -> Integer
+fibonacci n = fibonacci' 0 1 n
+
+fibonacci' :: Integer -> Integer -> Integer -> Integer
+fibonacci' a b 1 = b
+fibonacci' a b n = fibonacci' b (a+b) (n-1)
+
+This type of recursion where a function just directly calls itself with different arguments 
+is called tail recursion. As you’ve seen above, tail recursion corresponds to loops. 
+This is why tail recursion is often fast: 
+the compiler can generate a loop in machine code when it sees tail recursion.
+
+
+
+Guards:(using if then else is cumbersome when multiple cases encountered)
+
+Guarded definition for conditional
+
+f x y z
+  | condition1 = something
+  | condition2 = other
+  | otherwise  = somethingother
+
+Examples:
+describe :: Int -> String
+describe n
+  | n==2      = "Two"
+  | even n    = "Even"
+  | n==3      = "Three"
+  | n>100     = "Big!!"
+  | otherwise = "The number "++show n
+
+
+factorial n
+  | n<0       = -1
+  | n==0      = 1
+  | otherwise = n * factorial (n-1)
+
+ 
+Lists:(Homogeneous)
+Examples:
+[True,True,False] :: [Bool]
+["Moi","Hei"] :: [String]
+[] :: [a]                   -- more about this later (meaning any list of any type)
+[[1,2],[3,4]] :: [[Int]]    -- a list of lists
+[1..7] :: [Int]             -- range syntax, value [1,2,3,4,5,6,7]
+
+
+Haskell lists are implemented as singly-linked lists
+
+
+
+List operations:
+
+head :: [a] -> a            -- returns the first element
+tail :: [a] -> [a]          -- returns everything except the first element
+init :: [a] -> [a]          -- returns everything except the last element
+take :: Int -> [a] -> [a]   -- returns the n first elements
+drop :: Int -> [a] -> [a]   -- returns everything except the n first elements
+(++) :: [a] -> [a] -> [a]   -- lists are catenated with the ++ operator
+(!!) :: [a] -> Int -> a     -- lists are indexed with the !! operator <=> array[n] in java
+reverse :: [a] -> [a]       -- reverse a list
+null :: [a] -> Bool         -- is this list empty?
+length :: [a] -> Int        -- the length of a list
+
+Examples:
+
+[7,10,4,5] !! 2
+  ==> 4
+
+f xs = take 2 xs ++ drop 4 xs
+f [1,2,3,4,5,6]  ==>  [1,2,5,6]
+f [1,2,3]        ==>  [1,2]
+
+
+g xs = tail xs ++ [head xs]
+g [1,2,3]      ==>  [2,3,1]
+g (g [1,2,3])  ==>  [3,1,2]
+
+reverse [1..4] ==> [4,3,2,1]
+
+
+
+
+
+Type inference and polymorphism:
+
+In a type like [Char] we call Char a type parameter. 
+A type like the list type that needs a type parameter is called a parameterized type.
+
+The fact that a function like head can be used with many different types of arguments is called polymorphism. 
+The head function is said to be polymorphic. 
+There are many forms of polymorphism, 
+and this Haskell form that uses type variables is called parametric polymorphism.
+
+Since Haskell has type inference, you don’t need to give any type annotations. However even though type annotations aren’t required, there are multiple reasons to add them:
+
+They act as documentation
+They act as assertions that the compiler checks: help you spot mistakes
+You can use type annotations to give a function a narrower type than Haskell infers
+A good rule of thumb is to give top-level definitions type annotations.
+
+
+
+
+The Maybe Type:
+
+Type	             Values
+Maybe Bool	Nothing, Just False, Just True
+Maybe Int	Nothing, Just 0, Just 1, …
+Maybe [Int]	Nothing, Just [], Just [1,1337], …
+
+-- Multiply an Int with a Maybe Int. Nothing is treated as no multiplication at all.
+perhapsMultiply :: Int -> Maybe Int -> Int
+perhapsMultiply i Nothing = i
+perhapsMultiply i (Just j) = i*j   -- Note how j denotes the value inside the Just
+
+
+intOrZero :: Maybe Int -> Int
+intOrZero Nothing = 0
+intOrZero (Just i) = i
+
+safeHead :: [a] -> Maybe a
+safeHead xs = if null xs then Nothing else Just (head xs)
+
+headOrZero :: [Int] -> Int
+headOrZero xs = intOrZero (safeHead xs)
+headOrZero []  ==> intOrZero (safeHead [])  ==> intOrZero Nothing  ==> 0
+headOrZero [1] ==> intOrZero (safeHead [1]) ==> intOrZero (Just 1) ==> 1
+
+
+Constructors:
+constructors are special values that start with a capital letter that you can pattern match on.
+
+
+Constructors can be used just like Haskell values. 
+Constructors that take no arguments like Nothing, and False are just constants. 
+Constructors like Just that take an argument behave like functions. They even have function types!
+
+Prelude> :t Just
+Just :: a -> Maybe a
+
+
+
+
+
+
+The Either Type:
+
+Type	                      Values
+Either Int Bool	        Left 0, Left 1, Right False, Right True, …
+Either String [Int]	Left "asdf", Right [0,1,2], …
+Either Integer Integer	Left 0, Right 0, Left 1, Right 1, …
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+The case-of expression:
+
+case <value> of <pattern> -> <expression>
+                <pattern> -> <expression>
+
+
+Example:
+describe :: Integer -> String
+describe 0 = "zero"
+describe 1 = "one"
+describe 2 = "an even prime"
+describe n = "the number " ++ show n
+
+
+describe :: Integer -> String
+describe n = case n of 0 -> "zero"
+                       1 -> "one"
+                       2 -> "an even prime"
+                       n -> "the number " ++ show n
+
+
+
+Like switch case statement in Java:
+
+public static void describe(int n){
+    switch(n){
+       case 0:
+          System.out.print("zero");
+          break;
+       case 1:
+          System.out.print("one");
+          break;
+       case 2:
+          System.out.print("an even prime");
+          break;
+       default:
+          System.out.print("the number " +  n);
+          break;
+
+    }
+
+
+}
+
+
+
+-- parse country code into country name, returns Nothing if code not recognized
+parseCountry :: String -> Maybe String
+parseCountry "FI" = Just "Finland"
+parseCountry "SE" = Just "Sweden"
+parseCountry _ = Nothing
+
+flyTo :: String -> String
+flyTo countryCode = case parseCountry countryCode of Just country -> "You're flying to " ++ country
+                                                     Nothing -> "You're not flying anywhere"
+
+flyTo :: String -> String
+flyTo countryCode = handleResult (parseCountry countryCode)
+  where handleResult (Just country) = "You're flying to " ++ country
+        handleResult Nothing        = "You're not flying anywhere"
+
+
+
+
+
+-- given a sentence, decide whether it is a statement, question or exclamation
+sentenceType :: String -> String
+sentenceType sentence = case last sentence of '.' -> "statement"
+                                              '?' -> "question"
+                                              '!' -> "exclamation"
+                                              _   -> "not a sentence"
+
+sentenceType sentence = classify (last sentence)
+  where classify '.' = "statement"
+        classify '?' = "question"
+        classify '!' = "exclamation"
+        classify _   = "not a sentence"
+
+
+
+ 
+
+
+
+
+
+
+
+
+distanceToSunday :: String -> Integer
+
+distanceToSunday day = 7 - case day of "Monday"    -> 1
+                                       "Tuesday"   -> 2
+                                       "Wednesday" -> 3
+                                       "Thursday"  -> 4
+                                       "Friday"    -> 5
+                                       "Saturday"  -> 6
+                                       "Sunday"    -> 7
+                                       
+                      
+
+
+
+
+motivate :: String -> String
+motivate day = case distanceToSunday day of
+  6 -> "Have a nice week at work!"
+  5 -> "You're one day closer to weekend!"
+  n -> if n > 1
+       then show (n - 1) ++ " more day(s) until the weekend!"
+       else "Relax! You don't need to work today!"
+
+
+
+motivate :: String -> String
+motivate day
+  | n == 6 = "Have a nice week at work!"
+  | n == 5 = "You're one day closer to weekend!"
+  | n > 1 = show (n - 1) ++ " more day(s) until the weekend!"
+  | otherwise = "Relax! You don't need to work today!"
+  where n = distanceToSunday day 
+
+
+
+
+
+
+
+
+Note:
+
+area :: String -> Double -> Double
+area "square" x = square x
+area "circle" x = pi * square x
+  where square x = x * x
+
+This won’t compile because a the where clause only appends to the "circle" case, 
+so the square helper function is not available in the "square" case.
+
+
+We can re-write:
+
+area :: String -> Double -> Double
+area shape x = case shape of
+  "square" -> square x
+  "circle" -> pi * square x
+  where square x = x*x
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

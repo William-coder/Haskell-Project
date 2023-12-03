@@ -1,0 +1,478 @@
+Algebraic Datatypes:
+
+We know that:
+data Bool = True | False
+data Ordering = LT | EQ | GT
+
+So with this syntax, we can define:
+
+data Color = Red | Green | Blue
+
+-- a function that uses pattern matching on our new type
+rgb :: Color -> [Double]
+rgb Red = [1,0,0]
+rgb Green = [0,1,0]
+rgb Blue = [0,0,1]
+
+Prelude> :t Red
+Red :: Color
+Prelude> :t [Red,Blue,Green]
+[Red,Blue,Green] :: [Color]
+Prelude> rgb Red
+[1.0,0.0,0.0]
+
+Types like Bool, Ordering and Color that just list a bunch of constants are called enumerations or enums in Haskell.
+
+
+Fields for defining types:
+for example:
+data Report = ConstructReport Int String String
+This is how you create a report:
+
+Prelude> :t ConstructReport 1 "Title" "This is the body."
+ConstructReport 1 "Title" "This is the body." :: Report
+
+You can access the fields with pattern matching:
+
+reportContents :: Report -> String
+reportContents (ConstructReport id title contents) = contents
+setReportContents :: String -> Report -> Report
+setReportContents contents (ConstructReport id title _contents) = ConstructReport id title contents
+
+
+Constructor for defining types:
+The things on the right hand side of a data declaration are called constructors. 
+True, False, Red and ConstructReport are all examples of constructors. 
+A type can have multiple constructors, and a constructor can have zero or more fields.
+
+
+For example:
+data Card = Joker | Heart Int | Club Int | Spade Int | Diamond Int
+
+type Card has 5 constructors. One of them like Joker has 0 fields!
+
+
+Prelude> :t Heart
+Heart :: Int -> Card
+Prelude> :t Club
+Club :: Int -> Card
+Prelude> map Heart [1,2,3]
+[Heart 1,Heart 2,Heart 3]
+Prelude> (Heart . (\x -> x+1)) 3
+Heart 4
+
+
+
+Deriving:
+
+But there is a problem that Haskell does not know how to print the types we defined. 
+As the error says, they are not part of the Show class. 
+The easy solution is to just add a deriving Show after the type definition:
+
+data Card = Joker | Heart Int | Club Int | Spade Int | Diamond Int
+  deriving Show
+
+Prelude> Joker
+Joker
+
+
+So why algebraic?
+
+This is because, theoretically speaking, each datatype can be a sum of constructors, and each constructor is a product of fields. It makes sense to think of these as sums and products for many reasons, one being that we can count the possible values of each type this way:
+
+data Bool = True | False            -- corresponds to 1+1. Has 2 possible values.
+data TwoBools = TwoBools Bool Bool  -- corresponds to Bool*Bool, i.e. 2*2. Has 4 possible values.
+data Complex = Two Bool Bool | One Bool | None
+                                    -- corresponds to Bool*Bool+Bool+1 = 2*2+2+1 = 7. Has 7 possible values.
+
+
+
+Type parameters:
+
+1.defining parameterized types:
+
+the definition of Maybe is:
+
+data Maybe a = Nothing | Just a --Note a is a type variable 
+
+data Described a = Describe a String
+
+getValue :: Described a -> a
+getValue (Describe x _) = x
+
+getDescription :: Described a -> String
+getDescription (Describe _ desc) = desc
+Prelude> :t Describe
+Describe :: a -> String -> Described a
+Prelude> :t Describe True "This is true"
+Describe True "This is true" :: Described Bool
+Prelude> getValue (Describe 3 "a number")
+3
+Prelude> getDescription (Describe 3 "a number")
+"a number"
+
+
+
+
+Syntactic note:
+
+In the above definitions, we’ve used a as a type variable. 
+However any word that starts with a lower case letter is fine. We could have defined Maybe like this:
+
+data Maybe theType = Nothing | Just theType
+
+
+The rules for Haskell identifiers are:
+
+Type variables and names for functions and values start lower case (e.g. a, map, xs)
+Type names and constructor names start with upper case (e.g. Maybe, Just, Card, Heart)
+
+
+
+Also note that types can have multiple parameters:
+
+data Either a b = Left a | Right b
+
+
+
+Recursive types:
+
+
+Just like Haskell functions, Haskell data types can be recursive. 
+
+
+For example:
+
+We can define a list of integers:
+
+data IntList = Empty | Node Int IntList
+  deriving Show
+
+ihead :: IntList -> Int
+ihead (Node i _) = i
+
+itail :: IntList -> IntList
+itail (Node _ t) = t
+
+ilength :: IntList -> Int
+ilength Empty = 0
+ilength (Node _ t) = 1 + ilength t
+We can use the functions defined above to work with lists of integers:
+
+Prelude> ihead (Node 3 (Node 5 (Node 4 Empty)))
+3
+Prelude> itail (Node 3 (Node 5 (Node 4 Empty)))
+Node 5 (Node 4 Empty)
+Prelude> ilength (Node 3 (Node 5 (Node 4 Empty)))
+3
+
+
+
+For type polymorphism:
+
+data List a = Empty | Node a (List a)
+  deriving Show
+
+
+lhead :: List a -> a
+lhead (Node h _) = h
+
+ltail :: List a -> List a
+ltail (Node _ t) = t
+
+lnull :: List a -> Bool
+lnull Empty = True
+lnull _     = False
+
+llength :: List a -> Int
+llength Empty = 0
+llength (Node _ t) = 1 + llength t
+
+
+Note that just like with normal Haskell lists, we can’t have elements of different types in the same list!!
+
+
+Example of Growing a tree(Binary Tree):
+
+
+data Tree a = Node a (Tree a) (Tree a) | Empty
+
+example :: Tree Int
+
+example = (Node 0 (Node 1 (Node 2 Empty Empty) (Node 3 Empty Empty)) (Node 4 Empty Empty))
+
+
+Here is the function for the height of the Binary Tree:
+
+height :: Tree a -> Int
+
+height Empty = 0
+height Node (_ l r) = 1 + max (height l) (height r)
+
+
+More examples for search and insert for BST(Binary Search Tree):
+lookup :: Int -> Tree Int -> Bool
+lookup x Empty = False
+lookup x (Node y l r)
+  | x < y = lookup x l
+  | x > y = lookup x r
+  | otherwise = True
+
+insert :: Int -> Tree Int -> Tree Int
+insert x Empty = Node x Empty Empty
+insert x (Node y l r)
+  | x < y = Node y (insert x l) r
+  | x > y = Node y l (insert x r)
+  | otherwise = Node y l r
+
+
+
+Record Syntax
+
+data Person = MkPerson String Int String String String deriving Show
+A list of persons might look like the following:
+
+people :: [Person]
+people = [ MkPerson "Jane Doe" 21 "Houston" "Texas" "Engineer"
+         , MkPerson "Maija Meikäläinen" 35 "Rovaniemi" "Finland" "Engineer"
+         , MkPerson "Mauno Mutikainen" 27 "Turku" "Finland" "Mathematician"
+         ]
+Suppose that we need to find all engineers from Finland:
+
+query :: [Person] -> [Person]
+query [] = []
+query (MkPerson name age town state profession):xs
+  | state == "Finland" && profession == "Engineer" =
+      (MkPerson name age town state profession) : query xs
+  | otherwise = query xs
+Thus,
+
+query people ==> [MkPerson "Maija Meikäläinen" 35 "Rovaniemi" "Finland" "Engineer"]
+
+
+Haskell has a feature called record syntax that is helpful in these kinds of cases. The datatype Person can be defined as a record:
+
+data Person = MkPerson { name :: String, age :: Int, town :: String, state :: String, profession :: String}
+  deriving Show
+
+
+We can still define values of Person normally, but the Show instance prints the field names for us:
+Prelude> MkPerson "Jane Doe" 21 "Houston" "Texas" "Engineer"
+MkPerson {name = "Jane Doe", age = 21, town = "Houston", state = "Texas", profession = "Engineer"}
+
+
+
+However, we can also define values using record syntax. Note how the fields don’t need to be in any specific order now that they have names.
+Prelude> MkPerson {name = "Jane Doe", town = "Houston", profession = "Engineer", state = "Texas", age = 21}
+MkPerson {name = "Jane Doe", age = 21, town = "Houston", state = "Texas", profession = "Engineer"}
+
+
+
+Most importantly, We get accessor functions for the fields for free:
+
+Prelude> :t profession
+profession :: Person -> String
+Prelude> profession (MkPerson "Jane Doe" 21 "Houston" "Texas" "Engineer")
+"Engineer"
+
+
+
+
+We can now rewrite the query function using these accessor functions:
+
+query :: [Person] -> [Person]
+query []     = []
+query (x:xs)
+  | state x == "Finland" && profession x == "Engineer" =
+      x : query xs
+  | otherwise = query xs
+
+
+In summary:
+
+
+Types are defined like this
+data TypeName = ConstructorName FieldType FieldType2 | AnotherConstructor FieldType3 | OneMoreCons
+
+… or like this if we’re using type variables
+data TypeName variable = Cons1 variable Type1 | Cons2 Type2 variable
+
+
+You can have one or more constructors
+Each constructor can have zero or more fields
+Constructors start with upper case, type variables with lower case
+
+
+Values are handled with pattern matching:
+
+foo (ConstructorName a b) = a+b
+foo (AnotherConstructor _) = 0
+foo OneMoreCons = 7
+
+
+Constructors are just functions:
+ConstructorName :: FieldType -> FieldType2 -> TypeName
+Cons1 :: a -> Type1 -> TypeName a
+
+
+You can also define datatypes using record syntax:
+data TypeName = Constructor { field1 :: Field1Type, field2 :: Field2Type }
+
+
+This gives you accessor functions like field1 :: TypeName -> Field1Type for free.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

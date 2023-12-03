@@ -1,0 +1,69 @@
+{-|
+
+
+                            Online Haskell Compiler.
+                Code, Compile, Run and Debug Haskell program online.
+Write your code in this editor and press "Run" button to execute it.
+
+-}
+data BinL a = Empty a | Branch (BinL a) (BinL a) deriving Show
+type MaybeReader a = String -> Maybe (a,String)
+
+mrInt :: MaybeReader Int
+mrInt s = case reads s of
+  [(i,r)] -> Just (i,r)
+  _ -> Nothing
+
+mrLeftParen :: MaybeReader ()
+mrLeftParen ('(':r) = Just ((),r)
+mrLeftParen _ = Nothing
+
+mrRightParen :: MaybeReader ()
+mrRightParen (')':r) = Just ((),r)
+mrRightParen _ = Nothing
+
+mrSeq :: MaybeReader a -> MaybeReader b -> MaybeReader (a,b)
+mrSeq x y s =
+  case x s of
+	Nothing -> Nothing
+	Just (a,r) ->
+	  case y r of
+		Nothing -> Nothing
+		Just (b,q) -> Just ((a,b),q)
+
+mrChoice :: MaybeReader a -> MaybeReader b -> MaybeReader (Either a b)
+mrChoice x y s =
+  case x s of
+	Nothing -> case y s of
+				 Nothing -> Nothing
+				 Just (b,r) -> Just (Right b, r)
+	Just (a,r) -> Just (Left a , r)
+
+mrParens :: MaybeReader a -> MaybeReader a
+mrParens x s =
+  case (mrLeftParen `mrSeq` (x `mrSeq` mrRightParen)) s of
+	Nothing -> Nothing
+	Just (((),(a,())),r) -> Just (a,r)
+
+parseLeaf :: MaybeReader (BinL Int)
+parseLeaf s = case mrParens mrInt s of
+  Nothing -> Nothing
+  Just (i,r) -> Just (Empty i,r)
+
+parseBranch :: MaybeReader (BinL Int)
+parseBranch s =
+  let br = mrParens (parseBin `mrSeq` parseBin) in
+	case br s of
+	  Nothing -> Nothing
+	  Just ((l,r),rem) -> Just (Branch l r , rem)
+
+parseBin :: MaybeReader (BinL Int)
+parseBin s =
+  case mrChoice parseLeaf parseBranch s of
+	Nothing -> Nothing
+	Just (Left b,r) -> Just (b,r)
+	Just (Right b,r) -> Just (b,r)
+t :: String
+t = "((((1)(2))(3))((7)(8)))"
+
+main = print(parseLeaf t)
